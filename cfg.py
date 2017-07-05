@@ -10,23 +10,30 @@ class CFG(NamedTuple):
     terminals: Set[str]
 
     def first(self, symbol: str) -> Set[str]:
-        x = symbol
-
         # first of terminal is itself
-        if x == '&' or x in self.terminals:
-            return {x}
+        if symbol == '&' or symbol in self.terminals:
+            return {symbol}
 
         first = set()
-        if '&' in self.productions[x]:
+        if '&' in self.productions[symbol]:
             first |= {'&'}
 
-        for production in (p.split() for p in self.productions[x]):
+        for production in (p.split() for p in self.productions[symbol]):
             # compute transitive closure of first(yn)
             for y in production:
-                x = self.first(y)
-                first |= (x - {'&'})
+                first_y = self.first(y)
+                first |= (first_y - {'&'})
 
-                if '&' not in x:
+                if '&' not in first_y:
+                    break
+
+            # if for never breaks, & in first(yk)
+            else:
+                first |= {'&'}
+
+        return first
+
+                if '&' not in first_y:
                     break
 
             # if for never breaks, & in first(yk)
