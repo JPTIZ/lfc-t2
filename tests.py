@@ -55,6 +55,35 @@ class CFGTest(unittest.TestCase):
         self.assertSetEqual({'a', 'b', 'c', 'd'}, cfg.first('B'))
         self.assertSetEqual({'c', '&'}, cfg.first('C'))
 
+    def test_first_nt(self):
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'A b', 'A B c'},
+                'B': {'b B', 'A d', '&'},
+                'A': {'a A', '&'},
+            },
+        )
+
+        self.assertSetEqual({'A', 'B'}, cfg.first_nonterminal('S'))
+        self.assertSetEqual({'&'}, cfg.first_nonterminal('A'))
+        self.assertSetEqual({'A', '&'}, cfg.first_nonterminal('B'))
+
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'A B C'},
+                'A': {'a A', '&'},
+                'B': {'b B', 'A C d'},
+                'C': {'c C', '&'},
+            },
+        )
+
+        self.assertSetEqual({'A', 'B', 'C'}, cfg.first_nonterminal('S'))
+        self.assertSetEqual({'&'}, cfg.first_nonterminal('A'))
+        self.assertSetEqual({'A', 'C'}, cfg.first_nonterminal('B'))
+        self.assertSetEqual({'&'}, cfg.first_nonterminal('C'))
+
     def test_follow(self):
         cfg = CFG.create(
             initial_symbol='S',

@@ -33,6 +33,26 @@ class CFG(NamedTuple):
 
         return first
 
+    def first_nonterminal(self, symbol: str) -> Set[str]:
+        if symbol in self.terminals:
+            return set()
+
+        if symbol == '&':
+            return {symbol}
+
+        first = set()
+        if '&' in self.productions[symbol]:
+            first |= {'&'}
+
+        for production in (p.split() for p in self.productions[symbol]):
+            # compute transitive closure of first_nonterminal(yn)
+            for y in production:
+                if y in self.nonterminals:
+                    first |= {y}
+
+                first_y = self.first_nonterminal(y)
+                first |= (first_y - {'&'})
+
                 if '&' not in first_y:
                     break
 
