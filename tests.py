@@ -117,6 +117,76 @@ class CFGTest(unittest.TestCase):
         self.assertSetEqual({'+', ')', '$'}, cfg.follow("T'"))
         self.assertSetEqual({'*', '+', ')', '$'}, cfg.follow("F"))
 
+    def test_is_ll1(self):
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'a S a', 'b S b', 'a', 'b'}
+            }
+        )
+
+        self.assertFalse(cfg.is_ll1())
+
+    def test_parse_table(self):
+        cfg = CFG.create(
+            initial_symbol='E',
+            productions={
+                'E': {"T E'"},
+                "E'": {"+ T E'", '&'},
+                'T': {"F T'"},
+                "T'": {"* F T'", '&'},
+                'F': {'( E )', 'id'}
+            },
+        )
+
+        self.assertDictEqual({
+            ('E', 'id'): "T E'",
+            ('E', '('): "T E'",
+            ("E'", ')'): '&',
+            ("E'", '+'): "+ T E'",
+            ("E'", '$'): '&',
+            ('T', 'id'): "F T'",
+            ('T', '('): "F T'",
+            ("T'", ')'): '&',
+            ("T'", '+'): '&',
+            ("T'", '*'): "* F T'",
+            ("T'", '$'): '&',
+            ('F', 'id'): 'id',
+            ('F', '('): '( E )',
+        }, cfg.parse_table())
+
+    def test_parse(self):
+        cfg = CFG.create(
+            initial_symbol='E',
+            productions={
+                'E': {"T E'"},
+                "E'": {"+ T E'", '&'},
+                'T': {"F T'"},
+                "T'": {"* F T'", '&'},
+                'F': {'( E )', 'id'}
+            },
+        )
+
+        parse = cfg.parse('id + id')
+
+        self.assertTupleEqual((['id', '+', 'id'], ['E']), next(parse))
+        self.assertTupleEqual((['id', '+', 'id'], ["E'", 'T']), next(parse))
+        self.assertTupleEqual((['id', '+', 'id'], ["E'", "T'", 'F']), next(parse))
+        self.assertTupleEqual((['id', '+', 'id'], ["E'", "T'", 'id']), next(parse))
+        self.assertTupleEqual((['+', 'id'], ["E'", "T'"]), next(parse))
+        self.assertTupleEqual((['+', 'id'], ["E'"]), next(parse))
+        self.assertTupleEqual((['+', 'id'], ["E'", 'T', '+']), next(parse))
+        self.assertTupleEqual((['id'], ["E'", 'T']), next(parse))
+        self.assertTupleEqual((['id'], ["E'", "T'", 'F']), next(parse))
+        self.assertTupleEqual((['id'], ["E'", "T'", 'id']), next(parse))
+        self.assertTupleEqual(([], ["E'", "T'"]), next(parse))
+        self.assertTupleEqual(([], ["E'"]), next(parse))
+        self.assertTupleEqual(([], []), next(parse))
+
+        with self.assertRaises(StopIteration):
+            next(parse)
+
+
     def test_without_infertile(self):
         cfg = CFG.create(
             initial_symbol='S',

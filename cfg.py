@@ -1,6 +1,6 @@
 import string
 from itertools import chain
-from typing import Dict, NamedTuple, Set
+from typing import Dict, NamedTuple, Set, Tuple
 
 
 class CFG(NamedTuple):
@@ -89,6 +89,83 @@ class CFG(NamedTuple):
                     ret |= self.follow(k)
 
         return ret
+
+    def is_ll1(self) -> bool:
+        def has_left_recursion() -> bool:
+            for x in self.nonterminals:
+                if x in self.first_nonterminal(x):
+                    return True
+            return False
+
+        def is_factored() -> bool:
+            for y in self.productions.values():
+                if len(y) != len(set(production[0] for production in y)):
+                    return False
+            return True
+
+        def has_ambiguity():
+            for x in self.nonterminals:
+                first = self.first(x)
+                if '&' not in first:
+                    continue
+
+                if first & self.follow(x):
+                    return True
+            return False
+
+        return not has_left_recursion() and is_factored() and not has_ambiguity()
+
+    def parse_table(self) -> Dict[Tuple[str, str], str]:
+        table = {}
+
+        for nt, p in ((x, y) for x, v in self.productions.items() for y in v):
+            symbol = p.split(maxsplit=1)[0]
+            first = self.first(symbol)
+
+            for t in (first - {'&'}):
+                table[(nt, t)] = p
+
+            if '&' in first:
+                for t in self.follow(nt):
+                    table[(nt, t)] = p
+
+        return table
+
+    def parse(self, sentence: str):
+        table = self.parse_table()
+
+        sentence = sentence.split() + ['$']
+        stack = ['$', self.initial_symbol]
+
+        yield sentence[:-1], stack[1:]
+
+        while True:
+            front, top = sentence[0], stack.pop()
+
+            # we stacked empty symbol
+            if top == '&':
+                continue
+
+            # sentence is over
+            if top == front == '$':
+                break
+
+            if top in self.terminals:
+                if top != front:
+                    raise ValueError
+
+                _, *sentence = sentence
+
+            else:
+                rule = table.get((top, front))
+                if rule:
+                    if rule != '&':
+                        stack.extend(reversed(rule.split()))
+
+                else:
+                    raise ValueError
+
+            yield sentence[:-1], stack[1:]
 
     def without_infertile(self):
         def fertile(ni):
