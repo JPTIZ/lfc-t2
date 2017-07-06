@@ -11,7 +11,7 @@ class CFG(NamedTuple):
 
     def first(self, symbol: str) -> Set[str]:
         # first of terminal is itself
-        if symbol == '&' or symbol in self.terminals:
+        if symbol not in self.nonterminals:
             return {symbol}
 
         first = set()
