@@ -1,5 +1,7 @@
 import unittest
 
+import io
+
 from cfg import CFG
 
 
@@ -186,7 +188,6 @@ class CFGTest(unittest.TestCase):
         with self.assertRaises(StopIteration):
             next(parse)
 
-
     def test_without_infertile(self):
         cfg = CFG.create(
             initial_symbol='S',
@@ -201,6 +202,35 @@ class CFGTest(unittest.TestCase):
         self.assertDictEqual({
             'S': {'a'}
         }, fertile.productions)
+
+    def test_load(self):
+        buf = io.StringIO("""
+            E -> T E'
+            E' -> + T E' | &
+            T -> F T'
+            T' -> * F T' | &
+            F -> ( E ) | id
+        """)
+
+        cfg = CFG.load(buf)
+        self.assertEqual('E', cfg.initial_symbol)
+        self.assertDictEqual({
+            'E': {"T E'"},
+            "E'": {"+ T E'", '&'},
+            'T': {"F T'"},
+            "T'": {"* F T'", '&'},
+            'F': {'( E )', 'id'}
+        }, cfg.productions)
+
+        buf = io.StringIO('')
+        with self.assertRaises(ValueError):
+            CFG.load(buf)
+
+        buf = io.StringIO("""
+            S ->
+        """)
+        with self.assertRaises(ValueError):
+            CFG.load(buf)
 
 
 if __name__ == '__main__':

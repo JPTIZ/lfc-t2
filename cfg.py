@@ -1,6 +1,9 @@
+import logging
 import string
 from itertools import chain
-from typing import Dict, NamedTuple, Set, Tuple
+from typing import Dict, NamedTuple, Set, Tuple, TextIO
+
+logger = logging.getLogger(__name__)
 
 
 class CFG(NamedTuple):
@@ -9,29 +12,26 @@ class CFG(NamedTuple):
     nonterminals: Set[str]
     terminals: Set[str]
 
-    def first(self, symbol: str) -> Set[str]:
-        # first of terminal is itself
-        if symbol not in self.nonterminals:
-            return {symbol}
-
+    def first(self, sentence: str) -> Set[str]:
         first = set()
-        if '&' in self.productions[symbol]:
-            first |= {'&'}
 
-        for production in (p.split() for p in self.productions[symbol]):
-            # compute transitive closure of first(yn)
-            for y in production:
-                first_y = self.first(y)
-                first |= (first_y - {'&'})
+        # compute transitive closure of first(yn)
+        for y in sentence.split():
+            # first of terminal is itself
+            if y not in self.nonterminals:
+                return first | {y}
 
-                if '&' not in first_y:
-                    break
+            first_y = set()
+            for x in self.productions[y]:
+                first_y |= self.first(x)
 
-            # if for never breaks, & in first(yk)
-            else:
-                first |= {'&'}
+            first |= (first_y - {'&'})
 
-        return first
+            if '&' not in first_y:
+                return first
+
+        # if for never breaks, & in first(yk)
+        return first | {'&'}
 
     def first_nonterminal(self, symbol: str) -> Set[str]:
         if symbol in self.terminals:
@@ -72,23 +72,21 @@ class CFG(NamedTuple):
                 continue
 
             for production in (p.split() for p in v):
-                i = -1
-                while True:
-                    try:
-                        i = production.index(symbol, i+1)
-                    except ValueError:
+                try:
+                    i = production.index(symbol)
+                except ValueError:
+                    continue
+
+                for y in production[i + 1:]:
+                    first = self.first(y)
+                    ret |= (first - {'&'})
+
+                    if '&' not in first:
                         break
 
-                    for y in production[i + 1:]:
-                        first = self.first(y)
-                        ret |= (first - {'&'})
-
-                        if '&' not in first:
-                            break
-
-                    # if for never breaks, symbol might be last of production
-                    else:
-                        ret |= self.follow(k)
+                # if for never breaks, symbol might be last of production
+                else:
+                    ret |= self.follow(k)
 
         return ret
 
@@ -121,30 +119,24 @@ class CFG(NamedTuple):
         table = {}
 
         for nt, p in ((x, y) for x, v in self.productions.items() for y in v):
-            symbols = p.split(maxsplit=1)
-            first = self.first(symbols[0])
+            for symbol in p.split():
+                first = self.first(symbol)
 
-            for t in (first - {'&'}):
-                table[(nt, t)] = p
+                for t in (first - {'&'}):
+                    table[(nt, t)] = p
 
-            while '&' in first:
-                if len(symbols) > 1:
-                    symbols = symbols[1].split(maxsplit=1)
-                    symbol = symbols[0]
-                    first = self.first(symbol)
-                    for t in self.first(symbol):
-                        table[(nt, t)] = p
-                else:
-                    for t in self.follow(nt):
-                        table[(nt, t)] = p
+                if '&' not in first:
                     break
+            else:
+                for t in self.follow(symbol):
+                    table[(nt, t)] = p
 
         return table
 
     def parse(self, sentence: str):
         table = self.parse_table()
 
-        sentence = list(sentence) + ['$']
+        sentence = sentence.split() + ['$']
         stack = ['$', self.initial_symbol]
 
         yield sentence[:-1], stack[1:]
@@ -237,3 +229,52 @@ class CFG(NamedTuple):
                 if symbol != '&' and symbol not in nonterminals
             }
         )
+
+    @classmethod
+    def load(cls, fp: TextIO):
+        initial_symbol, productions = None, {}
+
+        for line in fp:
+            line = line.strip()
+            if not line:
+                continue
+
+            if '->' not in line:
+                logger.warning(f'Invalid line, skipping: {line}')
+                continue
+
+            x, y = [s.strip() for s in line.split('->', maxsplit=1)]
+            if not x:
+                logger.warning(f'Invalid symbol, skipping: {x}')
+                continue
+
+            if '->' in y:
+                logger.warning(f'Invalid productions, skipping')
+                continue
+
+            if not initial_symbol:
+                initial_symbol = x
+
+            def filter_productions(productions):
+                for p in productions.split('|'):
+                    q = p.strip()
+                    if not q:
+                        logger.warning(f'Empty production, skipping...')
+                        continue
+
+                    yield q
+
+            y = set(filter_productions(y))
+            if not y:
+                logger.warning(f'Symbol with no productions, skipping...')
+                continue
+
+            productions[x] = y
+
+        if not initial_symbol:
+            raise ValueError('Grammar with no symbols!')
+
+        if not productions:
+            raise ValueError('Grammer with no productions!')
+
+        return cls.create(initial_symbol, productions)
