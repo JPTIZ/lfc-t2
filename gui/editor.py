@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
         QMessageBox,
         QPlainTextEdit,
         QPushButton,
+        QShortcut,
         QTableWidget,
         QTableWidgetItem,
         QVBoxLayout,
@@ -27,9 +28,9 @@ from PyQt5.QtGui import (
         QKeySequence,
         )
 
-from gui.parse_view import ParseTableViewer
+from gui.viewers import ParseTableViewer, ParseResultDialog, ParseStepViewer
 from cfg import CFG
-from stub import (first, follow, first_nt, grammar_from, accept,
+from stub import (first, follow, first_nt, accept,
                   as_proper)
 
 
@@ -101,7 +102,18 @@ class GLCEditor:
         def build_contents():
             self.editor = QPlainTextEdit()
             self.editor.setTabChangesFocus(True)
-            self.editor.textChanged.connect(self.update_grammar)
+            self.editor.textChanged.connect(self.enable_run_grammar)
+
+            self.run_grammar_btn = QPushButton('Run grammar')
+            self.run_grammar_btn.clicked.connect(self.update_grammar)
+            self.run_grammar_btn.setEnabled(False)
+
+            run_btn_shortcut = QShortcut(QKeySequence('Ctrl+Return'), self.window)
+            run_btn_shortcut.activated.connect(self.update_grammar)
+
+            left_side = QVBoxLayout()
+            left_side.addWidget(self.editor)
+            left_side.addWidget(self.run_grammar_btn)
 
             self.first_table = QTableWidget()
             self.first_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -110,7 +122,7 @@ class GLCEditor:
             self.first_nt_table = QTableWidget()
             self.first_nt_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
-            self.right_side = QVBoxLayout()
+            right_side = QVBoxLayout()
 
             separator = QFrame()
             separator.setFrameShape(QFrame.HLine)
@@ -121,20 +133,20 @@ class GLCEditor:
             self.verify_test_btn = QPushButton('Verify')
             self.verify_test_btn.clicked.connect(self.verify_test_string)
 
-            self.right_side.addWidget(QLabel('Test string:'))
-            self.right_side.addWidget(self.test_string_edit)
-            self.right_side.addWidget(self.verify_test_btn)
-            self.right_side.addWidget(separator)
-            self.right_side.addWidget(QLabel('First'))
-            self.right_side.addWidget(self.first_table)
-            self.right_side.addWidget(QLabel('Follow'))
-            self.right_side.addWidget(self.follow_table)
-            self.right_side.addWidget(QLabel('First-NT'))
-            self.right_side.addWidget(self.first_nt_table)
+            right_side.addWidget(QLabel('Test string:'))
+            right_side.addWidget(self.test_string_edit)
+            right_side.addWidget(self.verify_test_btn)
+            right_side.addWidget(separator)
+            right_side.addWidget(QLabel('First'))
+            right_side.addWidget(self.first_table)
+            right_side.addWidget(QLabel('Follow'))
+            right_side.addWidget(self.follow_table)
+            right_side.addWidget(QLabel('First-NT'))
+            right_side.addWidget(self.first_nt_table)
 
             contents = QHBoxLayout(self.central_widget)
-            contents.addWidget(self.editor)
-            contents.addLayout(self.right_side)
+            contents.addLayout(left_side)
+            contents.addLayout(right_side)
 
         build_menu_bar()
         build_contents()
@@ -142,7 +154,9 @@ class GLCEditor:
 
     def new_cfg(self):
         '''Setups new Context-Free Grammar.'''
-        if QMessageBox.question(self.window, 'Confirm new grammar', 'Discard unsaved changes and create new empty grammar?',
+        if QMessageBox.question(self.window,
+                                'Confirm new grammar',
+                                'Discard unsaved changes and create new empty grammar?',
                 QMessageBox.Yes, QMessageBox.No) == QMessageBox.Yes:
             self.editor.clear()
             self.test_string_edit.clear()
@@ -151,7 +165,6 @@ class GLCEditor:
             self.first_nt_table.clear()
             self.grammar = None
             self.update_grammar()
-            print('(stub!) Creating CFG...')
 
     def load_cfg(self):
         '''Shows file select dialog and loads GFC.'''
@@ -176,7 +189,9 @@ class GLCEditor:
     def save_cfg_as(self):
         '''Shows file select dialog and saves GFC.'''
         dialog = QFileDialog(self.window)
-        filename, _ = dialog.getSaveFileName(self.window, 'Open CFG', filter='CFG files (*.cfg)')
+        filename, _ = dialog.getSaveFileName(self.window,
+                                             'Open CFG',
+                                             filter='CFG files (*.cfg)')
         if not filename:
             return
         self.filename = os.path.splitext(filename)[0] + '.cfg'
@@ -191,52 +206,53 @@ class GLCEditor:
 
     def verify_test_string(self):
         '''Verifies if test input string belongs to language.'''
-        print(f'Verifying {self.test_string_edit.text()}...')
         if self.grammar is None:
             result = 'Grammar input not valid.'
-        elif accept(self.grammar, self.test_string_edit.text()):
-            result = 'Accept!'
-        else:
-            result = 'Reject!'
-        QMessageBox.information(self.window,
-                                'Test result',
-                                result,
-                                QMessageBox.Ok)
+        steps = []
+        try:
+            for step in self.grammar.parse(self.test_string_edit.text()):
+                steps.append(step)
+            result = 'Accept'
+        except ValueError as e:
+            result = 'Reject'
+
+        if ParseResultDialog(self.window, result).show() == 1:
+            ParseStepViewer(self.window, steps).show()
 
     def show_parse_table(self):
         '''Shows LL(1) parse table.'''
-        print(self.grammar)
         if not self.grammar.is_ll1():
             QMessageBox.information(self.window,
                                     'Error showing parse table',
                                     'Grammar is not LL(1).',
                                     QMessageBox.Ok)
             return
-        else:
-            print('G is LL(1)')
         ParseTableViewer(self.window, self.grammar).show()
+
+    def enable_run_grammar(self):
+        '''Enables run grammar button.'''
+        self.run_grammar_btn.setEnabled(True)
 
     def update_grammar(self):
         '''Updates grammar with given input and then updates UI.
            If it fails to generate the grammar, nothing happens.'''
         try:
-            self.grammar = grammar_from(self.editor.toPlainText())
+            self.grammar = CFG.load(self.editor.toPlainText().splitlines())
         except Exception as e:
             traceback.print_tb(e.__traceback__)
-            print(f'Grammar generation failed: {e}')
             self.window.statusBar().showMessage('Failed to generate grammar. Check your syntax.')
             self.parse_table_item.setEnabled(False)
             return
 
         self.window.statusBar().showMessage('Done.')
         self.parse_table_item.setEnabled(True)
-        self.update_tables()
-
-        print(f'new grammar:'
-              f'\n\tterminals:    {self.grammar.terminals}'
-              f'\n\tnonterminals: {self.grammar.nonterminals}'
-              f'\n\tproductions:  {self.grammar.productions}'
-              )
+        self.run_grammar_btn.setEnabled(False)
+        try:
+            self.update_tables()
+        except RecursionError as e:
+            self.window.statusBar().showMessage('Failed to generate grammar tables: Recursion depth overflow.')
+            self.parse_table_item.setEnabled(False)
+            return
 
     def update_tables(self):
         '''Updates first, follow and firstNT tables.'''
@@ -247,7 +263,8 @@ class GLCEditor:
     def update_first_table(self):
         '''Updates table containing the `first(NT)` of each non-terminal NT.'''
         self.first_table.clear()
-        non_terminals = ['S'] + sorted(self.grammar.nonterminals - {'S'})
+        s = self.grammar.initial_symbol
+        non_terminals = [s] + sorted(self.grammar.nonterminals - {s})
         firsts = first(self.grammar)
 
         self.first_table.setRowCount(len(non_terminals))
@@ -264,7 +281,8 @@ class GLCEditor:
         '''Updates table containing the `follow(NT)` of each non-terminal
            NT.'''
         self.follow_table.clear()
-        non_terminals = ['S'] + sorted(self.grammar.nonterminals - {'S'})
+        s = self.grammar.initial_symbol
+        non_terminals = [s] + sorted(self.grammar.nonterminals - {s})
         follows = follow(self.grammar)
 
         self.follow_table.setRowCount(len(non_terminals))
@@ -281,7 +299,8 @@ class GLCEditor:
         '''Updates table containing the `firstNT(NT)` of each non-terminal
            NT.'''
         self.first_nt_table.clear()
-        non_terminals = ['S'] + sorted(self.grammar.nonterminals - {'S'})
+        s = self.grammar.initial_symbol
+        non_terminals = [s] + sorted(self.grammar.nonterminals - {s})
         first_nts = first_nt(self.grammar)
 
         self.first_nt_table.setRowCount(len(non_terminals))
