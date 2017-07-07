@@ -41,6 +41,7 @@ class GLCEditor:
     def __init__(self):
         '''Initializes editor.'''
         self.grammar = None
+        self.filename = None
 
         self.app = QApplication(sys.argv)
         self.window = QMainWindow()
@@ -70,6 +71,10 @@ class GLCEditor:
                 save_cfg = file_menu.addAction('&Save CFG')
                 save_cfg.setShortcut('Ctrl+S')
                 save_cfg.triggered.connect(self.save_cfg)
+
+                save_cfg_as = file_menu.addAction('Save CFG &As...')
+                save_cfg_as.setShortcut('Ctrl+Shift+S')
+                save_cfg_as.triggered.connect(self.save_cfg_as)
 
                 file_menu.addSeparator()
 
@@ -152,17 +157,31 @@ class GLCEditor:
         '''Shows file select dialog and loads GFC.'''
         dialog = QFileDialog(self.window)
         filename, _ = dialog.getOpenFileName(self.window, 'Open CFG', filter='CFG files (*.cfg)')
-        print(filename)
+        if not filename:
+            return
+        self.filename = filename
+        self.window.setWindowTitle(f'{self.filename} - Context-Free Grammar Editor')
         with open(filename) as f:
             self.editor.setPlainText(f.read())
 
     def save_cfg(self):
+        '''Saves GFC. If no filename exists, shows save dialog.'''
+        if self.filename == None:
+            self.save_cfg_as()
+            return
+        with open(self.filename, 'w') as f:
+            f.write(self.editor.toPlainText())
+            f.close()
+
+    def save_cfg_as(self):
         '''Shows file select dialog and saves GFC.'''
         dialog = QFileDialog(self.window)
         filename, _ = dialog.getSaveFileName(self.window, 'Open CFG', filter='CFG files (*.cfg)')
-        filename = os.path.splitext(filename)[0] + '.cfg'
-        print(filename)
-        with open(filename, 'w') as f:
+        if not filename:
+            return
+        self.filename = os.path.splitext(filename)[0] + '.cfg'
+        self.window.setWindowTitle(f'{self.filename} - Context-Free Grammar Editor')
+        with open(self.filename, 'w') as f:
             f.write(self.editor.toPlainText())
             f.close()
 
