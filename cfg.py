@@ -128,7 +128,7 @@ class CFG(NamedTuple):
                 if '&' not in first:
                     break
             else:
-                for t in self.follow(symbol):
+                for t in self.follow(nt):
                     table[(nt, t)] = p
 
         return table
