@@ -1,9 +1,12 @@
 import sys
+import traceback
+import os
 
 from PyQt5.QtWidgets import (
         QAbstractItemView,
         QAction,
         QApplication,
+        QFileDialog,
         QFrame,
         QGridLayout,
         QHBoxLayout,
@@ -59,6 +62,14 @@ class GLCEditor:
                 new_cfg = file_menu.addAction('&New CFG')
                 new_cfg.setShortcut('Ctrl+N')
                 new_cfg.triggered.connect(self.new_cfg)
+
+                load_cfg = file_menu.addAction('&Load CFG')
+                load_cfg.setShortcut('Ctrl+O')
+                load_cfg.triggered.connect(self.load_cfg)
+
+                save_cfg = file_menu.addAction('&Save CFG')
+                save_cfg.setShortcut('Ctrl+S')
+                save_cfg.triggered.connect(self.save_cfg)
 
                 file_menu.addSeparator()
 
@@ -137,6 +148,24 @@ class GLCEditor:
             self.update_grammar()
             print('(stub!) Creating CFG...')
 
+    def load_cfg(self):
+        '''Shows file select dialog and loads GFC.'''
+        dialog = QFileDialog(self.window)
+        filename, _ = dialog.getOpenFileName(self.window, 'Open CFG', filter='CFG files (*.cfg)')
+        print(filename)
+        with open(filename) as f:
+            self.editor.setPlainText(f.read())
+
+    def save_cfg(self):
+        '''Shows file select dialog and saves GFC.'''
+        dialog = QFileDialog(self.window)
+        filename, _ = dialog.getSaveFileName(self.window, 'Open CFG', filter='CFG files (*.cfg)')
+        filename = os.path.splitext(filename)[0] + '.cfg'
+        print(filename)
+        with open(filename, 'w') as f:
+            f.write(self.editor.toPlainText())
+            f.close()
+
     def make_grammar_proper(self):
         '''Transforms current grammar into a proper grammar.'''
         self.grammar = as_proper(self.grammar)
@@ -174,7 +203,8 @@ class GLCEditor:
         try:
             self.grammar = grammar_from(self.editor.toPlainText())
         except Exception as e:
-            print(e)
+            traceback.print_tb(e.__traceback__)
+            print(f'Grammar generation failed: {e}')
             self.window.statusBar().showMessage('Failed to generate grammar. Check your syntax.')
             self.parse_table_item.setEnabled(False)
             return
