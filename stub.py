@@ -7,7 +7,7 @@ def grammar_from(text):
                           productions={'S': {'a S a', 'b S b', 'a', 'b'}})
     if text == '7c':
         return CFG.create(initial_symbol='S',
-                          productions={'S': {'a A b S', 'aS', 'c'},
+                          productions={'S': {'a A b S', 'a S', 'c'},
                                        'A': {'a A b A', 'c'},
                                       })
     if text == '7d':
@@ -25,11 +25,14 @@ def grammar_from(text):
     return CFG.create(initial_symbol='S',
                       productions={'S': {'&'}})
 
+
 def non_terminals(grammar):
     return grammar.nonterminals
 
+
 def as_proper(grammar):
     return grammar
+
 
 def accept(grammar, text):
     try:
@@ -38,6 +41,7 @@ def accept(grammar, text):
         print(f'Rejected. Reason: {e}')
         return False
     return True
+
 
 def first(grammar):
     return {s: grammar.first(s) for s in grammar.nonterminals}
@@ -59,7 +63,6 @@ class Grammar:
     def __init__(self):
         self.nonterminals = {'S', 'A'}
 
-
     '''Stub grammar.'''
     def make_proper(self):
         return self
@@ -76,7 +79,7 @@ class Grammar:
         return {'S': {'B'},
                 'A': {}}
 
-    def _parse_table_(self):
+    def parse_table(self):
         return {
                 (0, 'a'): {'-'},
                 (0, 'b'): {'R1'},
