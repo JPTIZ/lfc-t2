@@ -152,7 +152,7 @@ class CFG(NamedTuple):
 
             if top in self.terminals:
                 if top != front:
-                    raise ValueError
+                    raise ValueError(f'{top} != {front}')
 
                 _, *sentence = sentence
 
@@ -163,7 +163,7 @@ class CFG(NamedTuple):
                         stack.extend(reversed(rule.split()))
 
                 else:
-                    raise ValueError
+                    raise ValueError(f'there is no ({top}, {front}) in parse table')
 
             yield sentence[:-1], stack[1:]
 
