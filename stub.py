@@ -1,31 +1,6 @@
 from cfg import CFG
 
 
-def grammar_from(text):
-    if text == '5':
-        return CFG.create(initial_symbol='S',
-                          productions={'S': {'a S a', 'b S b', 'a', 'b'}})
-    if text == '7c':
-        return CFG.create(initial_symbol='S',
-                          productions={'S': {'a A b S', 'a S', 'c'},
-                                       'A': {'a A b A', 'c'},
-                                      })
-    if text == '7d':
-        return CFG.create(initial_symbol='S',
-                          productions={'S': {'L a R', 'R'},
-                                       'L': {'b R', 'i'},
-                                       'R': {'L'},
-                                      })
-    if text == '7e':
-        return CFG.create(initial_symbol='S',
-                          productions={'S': {'A a A b', 'B b B a'},
-                                       'A': {'&'},
-                                       'B': {'&'},
-                                      })
-    return CFG.create(initial_symbol='S',
-                      productions={'S': {'&'}})
-
-
 def non_terminals(grammar):
     return grammar.nonterminals
 
@@ -60,10 +35,10 @@ def build_parse_table(grammar):
 
 
 class Grammar:
+    '''Stub grammar.'''
     def __init__(self):
         self.nonterminals = {'S', 'A'}
 
-    '''Stub grammar.'''
     def make_proper(self):
         return self
 
