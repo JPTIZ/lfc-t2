@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import (
+        QAbstractScrollArea,
         QAbstractItemView,
         QDialog,
         QMessageBox,
@@ -55,8 +56,8 @@ class ParseResultDialog(QDialog):
         self.msg_box = QMessageBox()
         self.msg_box.setWindowTitle('Test result')
         self.msg_box.setText(text)
-        self.msg_box.addButton(QPushButton('Ok'), QMessageBox.AcceptRole)
-        self.msg_box.addButton(QPushButton('Steps'), QMessageBox.NoRole)
+        self.msg_box.addButton(QPushButton('&Ok'), QMessageBox.AcceptRole)
+        self.msg_box.addButton(QPushButton('&Steps'), QMessageBox.NoRole)
 
     def show(self):
         return self.msg_box.exec_()
@@ -70,15 +71,20 @@ class ParseStepViewer(QDialog):
 
         layout = QVBoxLayout(self)
         self.table = QTableWidget()
-        self.table.setRowCount(len(steps))
         self.table.setColumnCount(2)
+        self.table.setRowCount(len(steps))
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-        for row, (left, right) in enumerate(steps):
-            self.table.setItem(row, 0, QTableWidgetItem(str(left)))
-            self.table.setItem(row, 1, QTableWidgetItem(str(right)))
+        self.table.setHorizontalHeaderLabels(['Stack', 'Input'])
 
-        ok_btn = QPushButton('Close')
+        for row, (right, left) in enumerate(steps):
+            self.table.setItem(row, 0, QTableWidgetItem(''.join(left)))
+            self.table.setItem(row, 1, QTableWidgetItem(''.join(right) + '$'))
+
+        self.table.resizeColumnsToContents()
+
+        ok_btn = QPushButton('&Close')
         ok_btn.clicked.connect(self.close)
 
         layout.addWidget(self.table)
