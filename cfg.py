@@ -72,21 +72,23 @@ class CFG(NamedTuple):
                 continue
 
             for production in (p.split() for p in v):
-                try:
-                    i = production.index(symbol)
-                except ValueError:
-                    continue
-
-                for y in production[i + 1:]:
-                    first = self.first(y)
-                    ret |= (first - {'&'})
-
-                    if '&' not in first:
+                i = -1
+                while True:
+                    try:
+                        i = production.index(symbol, i+1)
+                    except ValueError:
                         break
 
-                # if for never breaks, symbol might be last of production
-                else:
-                    ret |= self.follow(k)
+                    for y in production[i + 1:]:
+                        first = self.first(y)
+                        ret |= (first - {'&'})
+
+                        if '&' not in first:
+                            break
+
+                    # if for never breaks, symbol might be last of production
+                    else:
+                        ret |= self.follow(k)
 
         return ret
 
@@ -119,22 +121,30 @@ class CFG(NamedTuple):
         table = {}
 
         for nt, p in ((x, y) for x, v in self.productions.items() for y in v):
-            symbol = p.split(maxsplit=1)[0]
-            first = self.first(symbol)
+            symbols = p.split(maxsplit=1)
+            first = self.first(symbols[0])
 
             for t in (first - {'&'}):
                 table[(nt, t)] = p
 
-            if '&' in first:
-                for t in self.follow(nt):
-                    table[(nt, t)] = p
+            while '&' in first:
+                if len(symbols) > 1:
+                    symbols = symbols[1].split(maxsplit=1)
+                    symbol = symbols[0]
+                    first = self.first(symbol)
+                    for t in self.first(symbol):
+                        table[(nt, t)] = p
+                else:
+                    for t in self.follow(nt):
+                        table[(nt, t)] = p
+                    break
 
         return table
 
     def parse(self, sentence: str):
         table = self.parse_table()
 
-        sentence = sentence.split() + ['$']
+        sentence = list(sentence) + ['$']
         stack = ['$', self.initial_symbol]
 
         yield sentence[:-1], stack[1:]

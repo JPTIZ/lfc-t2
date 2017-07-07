@@ -23,21 +23,30 @@ class ParseTableViewer(QDialog):
 
         def build_table():
             parse = build_parse_table(grammar)
-            alphabet = string.ascii_lowercase + '$' + string.ascii_uppercase
 
-            #sorted(parse, key=lambda key: (key[0], alphabet.index(key[1])))
+            alphabet = 'S' + str(set(string.ascii_uppercase) - {'S'})
+            states = sorted({i[0] for i in parse}, key=lambda key: alphabet.index(key))
 
-            states = sorted({i[0] for i in parse})
+            print('parses: ')
+            for i in parse.items():
+                print(f'\t{i}')
+
+            alphabet = string.ascii_lowercase + '$'
             symbols = sorted({i[1] for i in parse}, key=lambda key: alphabet.index(key))
 
             self.table.setRowCount(len(states))
-            self.table.setColumnCount(len(symbols))
+            self.table.setColumnCount(len(symbols) + 1)
 
-            self.table.setHorizontalHeaderLabels(symbols)
+            self.table.setHorizontalHeaderLabels(['NT'] + symbols)
             self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
+            for row, state in enumerate(states):
+                self.table.setItem(row, 0, QTableWidgetItem(state))
+
             for (state, symbol) in parse:
-                self.table.setItem(states.index(state), symbols.index(symbol), QTableWidgetItem(str(parse[(state, symbol)])))
+                self.table.setItem(states.index(state),
+                                   symbols.index(symbol) + 1,
+                                   QTableWidgetItem(f'{parse[(state, symbol)]}'))
 
         build_table()
         layout.addWidget(self.table)

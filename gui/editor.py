@@ -30,6 +30,10 @@ from stub import (first, follow, first_nt, grammar_from, accept,
                   as_proper)
 
 
+def sorted_set_str(set_):
+    return str(sorted(set_)).replace('[', '{').replace(']', '}')
+
+
 class GLCEditor:
     def __init__(self):
         '''Initializes editor.'''
@@ -153,7 +157,6 @@ class GLCEditor:
 
     def show_parse_table(self):
         '''Shows LL(1) parse table.'''
-        print('(stub!) Showing LL(1) parse table...')
         print(self.grammar)
         if not self.grammar.is_ll1():
             QMessageBox.information(self.window,
@@ -180,9 +183,14 @@ class GLCEditor:
         self.parse_table_item.setEnabled(True)
         self.update_tables()
 
+        print(f'new grammar:'
+              f'\n\tterminals:    {self.grammar.terminals}'
+              f'\n\tnonterminals: {self.grammar.nonterminals}'
+              f'\n\tproductions:  {self.grammar.productions}'
+              )
+
     def update_tables(self):
         '''Updates first, follow and firstNT tables.'''
-        print('(stub!) Updating tables...')
         self.update_first_table()
         self.update_follow_table()
         self.update_first_nt_table()
@@ -197,8 +205,9 @@ class GLCEditor:
         self.first_table.setColumnCount(2)
 
         for row, symbol in enumerate(non_terminals):
+            item = sorted_set_str(firsts[symbol])
             self.first_table.setItem(row, 0, QTableWidgetItem(symbol))
-            self.first_table.setItem(row, 1, QTableWidgetItem(str(firsts[symbol])))
+            self.first_table.setItem(row, 1, QTableWidgetItem(item))
 
         self.first_table.resizeColumnsToContents()
 
@@ -213,8 +222,9 @@ class GLCEditor:
         self.follow_table.setColumnCount(2)
 
         for row, symbol in enumerate(non_terminals):
+            item = sorted_set_str(follows[symbol])
             self.follow_table.setItem(row, 0, QTableWidgetItem(symbol))
-            self.follow_table.setItem(row, 1, QTableWidgetItem(str(follows[symbol])))
+            self.follow_table.setItem(row, 1, QTableWidgetItem(item))
 
         self.follow_table.resizeColumnsToContents()
 
@@ -229,8 +239,9 @@ class GLCEditor:
         self.first_nt_table.setColumnCount(2)
 
         for row, symbol in enumerate(non_terminals):
+            item = sorted_set_str(first_nts[symbol])
             self.first_nt_table.setItem(row, 0, QTableWidgetItem(symbol))
-            self.first_nt_table.setItem(row, 1, QTableWidgetItem(str(first_nts[symbol])))
+            self.first_nt_table.setItem(row, 1, QTableWidgetItem(item))
 
         self.first_nt_table.resizeColumnsToContents()
 
