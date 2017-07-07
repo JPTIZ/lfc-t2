@@ -69,22 +69,21 @@ class CFG(NamedTuple):
 
         for k, v in self.productions.items():
             for production in (p.split() for p in v):
-                try:
-                    i = production.index(symbol)
-                except ValueError:
-                    continue
+                piece = production
+                while symbol in piece:
+                    piece = piece[production.index(symbol) + 1:]
 
-                for y in production[i + 1:]:
-                    first = self.first(y)
-                    ret |= (first - {'&'})
+                    for y in piece:
+                        first = self.first(y)
+                        ret |= (first - {'&'})
 
-                    if '&' not in first:
-                        break
+                        if '&' not in first:
+                            break
 
-                # if for never breaks, symbol might be last of production
-                else:
-                    if symbol != k:
-                        ret |= self.follow(k)
+                    # if for never breaks, symbol might be last of production
+                    else:
+                        if symbol != k:
+                            ret |= self.follow(k)
 
         return ret
 

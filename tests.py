@@ -135,6 +135,17 @@ class CFGTest(unittest.TestCase):
         )
         self.assertEqual({'a', 'b', '$'}, cfg.follow('S'))
 
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'A a A b', 'B b B a'},
+                'A': {'&'},
+                'B': {'&'},
+            },
+        )
+        self.assertEqual({'a', 'b'}, cfg.follow('A'))
+        self.assertEqual({'a', 'b'}, cfg.follow('B'))
+
     def test_is_ll1(self):
         cfg = CFG.create(
             initial_symbol='S',
