@@ -57,6 +57,14 @@ class CFGTest(unittest.TestCase):
         self.assertSetEqual({'a', 'b', 'c', 'd'}, cfg.first('B'))
         self.assertSetEqual({'c', '&'}, cfg.first('C'))
 
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'a S a', 'b S b', 'a', 'b'},
+            },
+        )
+        self.assertEqual({'a', 'b'}, cfg.first('S'))
+
     def test_first_nt(self):
         cfg = CFG.create(
             initial_symbol='S',
@@ -118,6 +126,14 @@ class CFGTest(unittest.TestCase):
         self.assertSetEqual({'+', ')', '$'}, cfg.follow('T'))
         self.assertSetEqual({'+', ')', '$'}, cfg.follow("T'"))
         self.assertSetEqual({'*', '+', ')', '$'}, cfg.follow("F"))
+
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'a S a', 'b S b', 'a', 'b'},
+            },
+        )
+        self.assertEqual({'a', 'b', '$'}, cfg.follow('S'))
 
     def test_is_ll1(self):
         cfg = CFG.create(

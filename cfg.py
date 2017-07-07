@@ -68,9 +68,6 @@ class CFG(NamedTuple):
             ret |= {'$'}
 
         for k, v in self.productions.items():
-            if k == symbol:
-                continue
-
             for production in (p.split() for p in v):
                 try:
                     i = production.index(symbol)
@@ -86,7 +83,8 @@ class CFG(NamedTuple):
 
                 # if for never breaks, symbol might be last of production
                 else:
-                    ret |= self.follow(k)
+                    if symbol != k:
+                        ret |= self.follow(k)
 
         return ret
 
