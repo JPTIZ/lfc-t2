@@ -230,6 +230,20 @@ class CFGTest(unittest.TestCase):
             'S': {'a'}
         }, fertile.productions)
 
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'A a A b'},
+                'A': {'c', '&'},
+            },
+        )
+
+        fertile = cfg.without_infertile()
+        self.assertEqual({
+            'S': {'A a A b'},
+            'A': {'c', '&'},
+        }, fertile.productions)
+
     def test_load(self):
         buf = io.StringIO("""
             E -> T E'

@@ -171,17 +171,17 @@ class CFG(NamedTuple):
             for symbol in ni:
                 yield symbol
 
-            allowed = ni | self.terminals
+            allowed = ni | self.terminals | {'&'}
             for symbol, productions in self.productions.items():
-                for production in productions:
-                    if set(production) <= allowed:
+                for ys in (set(p.split()) for p in productions):
+                    if ys <= allowed:
                         yield symbol
 
         ni, next_ni = set(), set(fertile(set()))
         while ni != next_ni:
             ni, next_ni = set(next_ni), set(fertile(next_ni))
 
-        fertile = ni | self.terminals
+        fertile = ni | self.terminals | {'&'}
         return self.create(
             initial_symbol=self.initial_symbol,
             productions={
