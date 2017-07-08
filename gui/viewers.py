@@ -17,7 +17,7 @@ class ParseTableViewer(QDialog):
     def __init__(self, parent, grammar):
         super(QDialog, self).__init__(parent)
         self.setModal(True)
-        self.setWindowTitle('LL(1) Parse Table')
+        self.setWindowTitle('LL(1) Parsing Table')
         self.resize(640, 480)
 
         layout = QVBoxLayout(self)

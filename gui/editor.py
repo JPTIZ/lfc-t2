@@ -85,13 +85,13 @@ class GLCEditor:
 
             def build_transform_menu():
                 transform_menu = menu_bar.addMenu('&Transform')
-                make_proper = transform_menu.addAction('Make &Proper')
-                make_proper.setShortcut('Ctrl+P')
-                make_proper.triggered.connect(self.make_grammar_proper)
+                self.make_proper_item = transform_menu.addAction('Make &Proper')
+                self.make_proper_item.setShortcut('Ctrl+P')
+                self.make_proper_item.triggered.connect(self.make_grammar_proper)
 
             def build_view_menu():
                 view_menu = menu_bar.addMenu('&View')
-                self.parse_table_item = view_menu.addAction('LL(1) &Parse Table')
+                self.parse_table_item = view_menu.addAction('LL(1) &Parsing Table')
                 self.parse_table_item.setShortcut('Ctrl+L')
                 self.parse_table_item.triggered.connect(self.show_parse_table)
 
@@ -150,7 +150,8 @@ class GLCEditor:
 
         build_menu_bar()
         build_contents()
-        self.update_grammar()
+        self.make_proper_item.setEnabled(False)
+        self.parse_table_item.setEnabled(False)
 
     def new_cfg(self):
         '''Setups new Context-Free Grammar.'''
@@ -164,7 +165,10 @@ class GLCEditor:
             self.follow_table.clear()
             self.first_nt_table.clear()
             self.grammar = None
-            self.update_grammar()
+            self.filename = None
+            self.make_proper_item.setEnabled(False)
+            self.parse_table_item.setEnabled(False)
+            self.window.setWindowTitle('Context-Free Grammar Editor')
 
     def load_cfg(self):
         '''Shows file select dialog and loads GFC.'''
@@ -220,10 +224,10 @@ class GLCEditor:
             ParseStepViewer(self.window, steps).show()
 
     def show_parse_table(self):
-        '''Shows LL(1) parse table.'''
+        '''Shows LL(1) parsing table.'''
         if not self.grammar.is_ll1():
             QMessageBox.information(self.window,
-                                    'Error showing parse table',
+                                    'Error showing parsing table',
                                     'Grammar is not LL(1).',
                                     QMessageBox.Ok)
             return
@@ -241,16 +245,19 @@ class GLCEditor:
         except Exception as e:
             traceback.print_tb(e.__traceback__)
             self.window.statusBar().showMessage('Failed to generate grammar. Check your syntax.')
+            self.make_proper_item.setEnabled(False)
             self.parse_table_item.setEnabled(False)
             return
 
         self.window.statusBar().showMessage('Done.')
+        self.make_proper_item.setEnabled(True)
         self.parse_table_item.setEnabled(True)
         self.run_grammar_btn.setEnabled(False)
         try:
             self.update_tables()
         except RecursionError as e:
             self.window.statusBar().showMessage('Failed to generate grammar tables: Recursion depth overflow.')
+            self.make_proper_item.setEnabled(False)
             self.parse_table_item.setEnabled(False)
             return
 
@@ -307,7 +314,7 @@ class GLCEditor:
         self.first_nt_table.setColumnCount(2)
 
         for row, symbol in enumerate(non_terminals):
-            item = sorted_set_str(first_nts[symbol])
+            item = sorted_set_str(first_nts[symbol] - {'&'})
             self.first_nt_table.setItem(row, 0, QTableWidgetItem(symbol))
             self.first_nt_table.setItem(row, 1, QTableWidgetItem(item))
 
