@@ -208,7 +208,9 @@ class CFG(NamedTuple):
                         self.productions[symbol] |= {new_prod}
 
         for symbol, productions in self.productions.items():
-            self.productions[symbol] -= {'&', ''}
+            if symbol != self.initial_symbol:
+                self.productions[symbol] -= {'&'}
+            self.productions[symbol] -= {''}
 
         return self.create(
                 initial_symbol=self.initial_symbol,

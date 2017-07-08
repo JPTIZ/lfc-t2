@@ -244,6 +244,35 @@ class CFGTest(unittest.TestCase):
             'A': {'c', '&'},
         }, fertile.productions)
 
+    def test_epsilon_free(self):
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'A a A b'},
+                'A': {'c', '&'},
+            },
+        )
+
+        epsilon_free = cfg.epsilon_free()
+        self.assertEqual('S', epsilon_free.initial_symbol)
+        self.assertDictEqual({
+            'S': {'a A b', 'A a b', 'a b', 'A a A b'},
+            'A': {'c'},
+        }, epsilon_free.productions)
+
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'&'},
+            },
+        )
+
+        epsilon_free = cfg.epsilon_free()
+        self.assertEqual('S', epsilon_free.initial_symbol)
+        self.assertDictEqual({
+            'S': {'&'},
+        }, epsilon_free.productions)
+
     def test_load(self):
         buf = io.StringIO("""
             E -> T E'
