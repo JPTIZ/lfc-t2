@@ -6,16 +6,9 @@ def non_terminals(grammar):
 
 
 def as_proper(grammar):
+    grammar = grammar.epsilon_free()
+    #grammar = grammar.without_infertile()
     return grammar
-
-
-def accept(grammar, text):
-    try:
-        *_, result = grammar.parse(text)
-    except ValueError as e:
-        print(f'Rejected. Reason: {e}')
-        return False
-    return True
 
 
 def first(grammar):

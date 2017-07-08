@@ -30,8 +30,7 @@ from PyQt5.QtGui import (
 
 from gui.viewers import ParseTableViewer, ParseResultDialog, ParseStepViewer
 from cfg import CFG
-from stub import (first, follow, first_nt, accept,
-                  as_proper)
+from stub import (first, follow, first_nt, as_proper)
 
 
 def sorted_set_str(set_):
@@ -207,6 +206,10 @@ class GLCEditor:
     def make_grammar_proper(self):
         '''Transforms current grammar into a proper grammar.'''
         self.grammar = as_proper(self.grammar)
+        text = ''
+        for line in str(self.grammar).splitlines()[1:-1]:
+            text += line.strip() + '\n'
+        self.editor.setPlainText(text)
 
     def verify_test_string(self):
         '''Verifies if test input string belongs to language.'''

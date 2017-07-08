@@ -195,6 +195,26 @@ class CFG(NamedTuple):
             }
         )
 
+    def epsilon_free(self):
+        for symbol, productions in self.productions.items():
+            prod_ = list(productions)
+            for destiny in prod_:
+                for i, char in enumerate(destiny):
+                    if char == ' ':
+                        continue
+                    if '&' in self.first(char):
+                        new_prod = (destiny[:i] + destiny[i:].replace(char, '', 1)).replace('  ', ' ').strip()
+                        prod_.append(new_prod)
+                        self.productions[symbol] |= {new_prod}
+
+        for symbol, productions in self.productions.items():
+            self.productions[symbol] -= {'&', ''}
+
+        return self.create(
+                initial_symbol=self.initial_symbol,
+                productions={symbol: p for symbol, p in self.productions.items() if len(p) != 0}
+                )
+
     def __str__(self):
         alphabet = self.initial_symbol + string.ascii_letters + '& '
 
