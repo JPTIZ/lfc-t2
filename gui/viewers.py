@@ -79,7 +79,7 @@ class ParseStepViewer(QDialog):
         self.table.setHorizontalHeaderLabels(['Stack', 'Input'])
 
         for row, (right, left) in enumerate(steps):
-            self.table.setItem(row, 0, QTableWidgetItem(''.join(left)))
+            self.table.setItem(row, 0, QTableWidgetItem('$' + ''.join(left)))
             self.table.setItem(row, 1, QTableWidgetItem(''.join(right) + '$'))
 
         self.table.resizeColumnsToContents()

@@ -12,23 +12,29 @@ class CFG(NamedTuple):
     nonterminals: Set[str]
     terminals: Set[str]
 
-    def first(self, sentence: str) -> Set[str]:
+    def first(self, sentence: str, visited=set()) -> Set[str]:
         first = set()
+        visited |= {sentence}
 
         # compute transitive closure of first(yn)
         for y in sentence.split():
             # first of terminal is itself
             if y not in self.nonterminals:
+                visited -= {sentence}
                 return first | {y}
 
             first_y = set()
             for x in self.productions[y]:
-                first_y |= self.first(x)
+                if x not in visited:
+                    first_y |= self.first(x)
 
             first |= (first_y - {'&'})
 
             if '&' not in first_y:
+                visited -= {sentence}
                 return first
+
+        visited -= {sentence}
 
         # if for never breaks, & in first(yk)
         return first | {'&'}
@@ -62,8 +68,10 @@ class CFG(NamedTuple):
 
         return first
 
-    def follow(self, symbol: str) -> Set[str]:
+    def follow(self, symbol: str, visited=set()) -> Set[str]:
         ret = set()
+        visited |= {symbol}
+
         if symbol == self.initial_symbol:
             ret |= {'$'}
 
@@ -74,7 +82,7 @@ class CFG(NamedTuple):
                     piece = piece[production.index(symbol) + 1:]
 
                     for y in piece:
-                        first = self.first(y)
+                        first = self.first(y)#, visited=visited | {y})
                         ret |= (first - {'&'})
 
                         if '&' not in first:
@@ -82,9 +90,10 @@ class CFG(NamedTuple):
 
                     # if for never breaks, symbol might be last of production
                     else:
-                        if symbol != k:
-                            ret |= self.follow(k)
+                        if symbol != k and k not in visited:
+                            ret |= self.follow(k, visited=visited)
 
+        visited -= {symbol}
         return ret
 
     def is_ll1(self) -> bool:
@@ -212,19 +221,25 @@ class CFG(NamedTuple):
                 self.productions[symbol] -= {'&'}
             self.productions[symbol] -= {''}
 
+        initial = self.initial_symbol
+        if '&' in self.productions[initial]:
+            self.productions[initial] -= {'&'}
+            self.productions[f"{initial}'"] = {initial, '&'}
+            initial = f"{initial}'"
+
         return self.create(
-                initial_symbol=self.initial_symbol,
+                initial_symbol=initial,
                 productions={symbol: p for symbol, p in self.productions.items() if len(p) != 0}
                 )
 
     def __str__(self):
-        alphabet = self.initial_symbol + string.ascii_letters + '& '
+        alphabet = self.initial_symbol + string.ascii_letters + '&'
 
         def key(word):
-            return [alphabet.index(c) for c in word]
+            return [alphabet.index(c) for c in word.split()]
 
         output = []
-        for symbol in sorted(self.productions.keys(), key=key):
+        for symbol in [self.initial_symbol] + sorted(set(self.productions.keys()) - {self.initial_symbol}, key=key):
             productions = sorted(self.productions[symbol], key=key)
             output.append(f"{symbol} -> {' | '.join(productions)}")
 

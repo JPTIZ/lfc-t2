@@ -146,6 +146,18 @@ class CFGTest(unittest.TestCase):
         self.assertEqual({'a', 'b'}, cfg.follow('A'))
         self.assertEqual({'a', 'b'}, cfg.follow('B'))
 
+        cfg = CFG.create(
+            initial_symbol='S',
+            productions={
+                'S': {'a B S', 'b A S', '&'},
+                'A': {'a', 'b A A'},
+                'B': {'b', 'a B B'},
+            },
+        )
+        self.assertSetEqual({'$'}, cfg.follow('S'))
+        self.assertSetEqual({'$', 'a', 'b'}, cfg.follow('A'))
+        self.assertSetEqual({'$', 'a', 'b'}, cfg.follow('B'))
+
     def test_is_ll1(self):
         cfg = CFG.create(
             initial_symbol='S',
@@ -268,9 +280,9 @@ class CFGTest(unittest.TestCase):
         )
 
         epsilon_free = cfg.epsilon_free()
-        self.assertEqual('S', epsilon_free.initial_symbol)
+        self.assertEqual("S'", epsilon_free.initial_symbol)
         self.assertDictEqual({
-            'S': {'&'},
+            "S'": {'S', '&'},
         }, epsilon_free.productions)
 
     def test_load(self):
