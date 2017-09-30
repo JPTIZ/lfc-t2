@@ -248,8 +248,8 @@ class GLCEditor:
         except Exception as e:
             traceback.print_tb(e.__traceback__)
             self.window.statusBar().showMessage('Failed to generate grammar. Check your syntax.')
-            self.make_proper_item.setEnabled(False)
-            self.parse_table_item.setEnabled(False)
+            #self.make_proper_item.setEnabled(False)
+            #self.parse_table_item.setEnabled(False)
             return
 
         self.window.statusBar().showMessage('Done.')
@@ -260,8 +260,8 @@ class GLCEditor:
             self.update_tables()
         except RecursionError as e:
             self.window.statusBar().showMessage('Failed to generate grammar tables: Recursion depth overflow.')
-            self.make_proper_item.setEnabled(False)
-            self.parse_table_item.setEnabled(False)
+            #self.make_proper_item.setEnabled(False)
+            #self.parse_table_item.setEnabled(False)
             return
 
     def update_tables(self):

@@ -39,12 +39,14 @@ class CFG(NamedTuple):
         # if for never breaks, & in first(yk)
         return first | {'&'}
 
-    def first_nonterminal(self, symbol: str) -> Set[str]:
+    def first_nonterminal(self, symbol: str, visited=set()) -> Set[str]:
         if symbol in self.terminals:
             return set()
 
         if symbol == '&':
             return {symbol}
+
+        visited |= {symbol}
 
         first = set()
         if '&' in self.productions[symbol]:
@@ -56,7 +58,9 @@ class CFG(NamedTuple):
                 if y in self.nonterminals:
                     first |= {y}
 
-                first_y = self.first_nonterminal(y)
+                if y in visited:
+                    continue
+                first_y = self.first_nonterminal(y, visited=visited)
                 first |= (first_y - {'&'})
 
                 if '&' not in first_y:
@@ -65,6 +69,8 @@ class CFG(NamedTuple):
             # if for never breaks, & in first(yk)
             else:
                 first |= {'&'}
+
+        visited -= {symbol}
 
         return first
 
@@ -222,7 +228,7 @@ class CFG(NamedTuple):
             self.productions[symbol] -= {''}
 
         initial = self.initial_symbol
-        if '&' in self.productions[initial]:
+        if '&' in self.first(initial):
             self.productions[initial] -= {'&'}
             self.productions[f"{initial}'"] = {initial, '&'}
             initial = f"{initial}'"
